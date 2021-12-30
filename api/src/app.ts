@@ -53,6 +53,7 @@ import { register as registerWebhooks } from './webhooks';
 import { flushCaches } from './cache';
 import { registerAuthProviders } from './auth';
 import { Url } from './utils/url';
+import { getFlowManager } from './flows';
 
 export default async function createApp(): Promise<express.Application> {
 	validateEnv(['KEY', 'SECRET']);
@@ -80,8 +81,10 @@ export default async function createApp(): Promise<express.Application> {
 	await registerAuthProviders();
 
 	const extensionManager = getExtensionManager();
+	const flowManager = getFlowManager();
 
 	await extensionManager.initialize();
+	await flowManager.initialize();
 
 	const app = express();
 
