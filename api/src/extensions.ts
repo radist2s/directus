@@ -49,20 +49,24 @@ export function getExtensionManager(): ExtensionManager {
 	return extensionManager;
 }
 
+type AppExtensionsMap = Partial<Record<AppExtensionType, string>>;
+type ApiExtensionsMap = {
+	hooks: (
+		| { type: 'filter'; path: string; event: string; handler: FilterHandler }
+		| { type: 'action'; path: string; event: string; handler: ActionHandler }
+		| { type: 'init'; path: string; event: string; handler: InitHandler }
+		| { type: 'schedule'; path: string; task: ScheduledTask }
+	)[];
+	endpoints: { path: string }[];
+};
+
 class ExtensionManager {
 	private isInitialized = false;
 
 	private extensions: Extension[] = [];
 
-	private appExtensions: Partial<Record<AppExtensionType, string>> = {};
-
-	private apiHooks: (
-		| { type: 'filter'; path: string; event: string; handler: FilterHandler }
-		| { type: 'action'; path: string; event: string; handler: ActionHandler }
-		| { type: 'init'; path: string; event: string; handler: InitHandler }
-		| { type: 'schedule'; path: string; task: ScheduledTask }
-	)[] = [];
-	private apiEndpoints: { path: string }[] = [];
+	private appExtensions: AppExtensionsMap = {};
+	private apiExtensions: ApiExtensionsMap = { hooks: [], endpoints: [] };
 
 	private apiEmitter: Emitter;
 	private endpointRouter: Router;
@@ -234,7 +238,7 @@ class ExtensionManager {
 			filter: (event: string, handler: FilterHandler) => {
 				emitter.onFilter(event, handler);
 
-				this.apiHooks.push({
+				this.apiExtensions.hooks.push({
 					type: 'filter',
 					path: hookPath,
 					event,
@@ -244,7 +248,7 @@ class ExtensionManager {
 			action: (event: string, handler: ActionHandler) => {
 				emitter.onAction(event, handler);
 
-				this.apiHooks.push({
+				this.apiExtensions.hooks.push({
 					type: 'action',
 					path: hookPath,
 					event,
@@ -254,7 +258,7 @@ class ExtensionManager {
 			init: (event: string, handler: InitHandler) => {
 				emitter.onInit(event, handler);
 
-				this.apiHooks.push({
+				this.apiExtensions.hooks.push({
 					type: 'init',
 					path: hookPath,
 					event,
@@ -273,7 +277,7 @@ class ExtensionManager {
 						}
 					});
 
-					this.apiHooks.push({
+					this.apiExtensions.hooks.push({
 						type: 'schedule',
 						path: hookPath,
 						task,
@@ -317,13 +321,13 @@ class ExtensionManager {
 			getSchema,
 		});
 
-		this.apiEndpoints.push({
+		this.apiExtensions.endpoints.push({
 			path: endpointPath,
 		});
 	}
 
 	private unregisterHooks(): void {
-		for (const hook of this.apiHooks) {
+		for (const hook of this.apiExtensions.hooks) {
 			switch (hook.type) {
 				case 'filter':
 					emitter.offFilter(hook.event, hook.handler);
@@ -342,16 +346,16 @@ class ExtensionManager {
 			delete require.cache[require.resolve(hook.path)];
 		}
 
-		this.apiHooks = [];
+		this.apiExtensions.hooks = [];
 	}
 
 	private unregisterEndpoints(): void {
-		for (const endpoint of this.apiEndpoints) {
+		for (const endpoint of this.apiExtensions.endpoints) {
 			delete require.cache[require.resolve(endpoint.path)];
 		}
 
 		this.endpointRouter.stack = [];
 
-		this.apiEndpoints = [];
+		this.apiExtensions.endpoints = [];
 	}
 }
