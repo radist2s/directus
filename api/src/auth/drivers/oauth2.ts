@@ -103,7 +103,8 @@ export class OAuth2AuthDriver extends LocalAuthDriver {
 			tokenSet = await this.client.oauthCallback(
 				this.redirectUrl,
 				{ code: payload.code, state: payload.state },
-				{ code_verifier: payload.codeVerifier, state: generators.codeChallenge(payload.codeVerifier) }
+				{ code_verifier: payload.codeVerifier, state: generators.codeChallenge(payload.codeVerifier) },
+				{ exchangeBody: this.config.exchangeBody }
 			);
 
 			const issuer = this.client.issuer;
