@@ -104,7 +104,10 @@ export class OAuth2AuthDriver extends LocalAuthDriver {
 				this.redirectUrl,
 				{ code: payload.code, state: payload.state },
 				{ code_verifier: payload.codeVerifier, state: generators.codeChallenge(payload.codeVerifier) },
-				{ exchangeBody: this.config.exchangeBody }
+				{ exchangeBody:
+					typeof this.config.exchangeBody === 'string' ?
+				  		Object.fromEntries(new URLSearchParams(this.config.exchangeBody).entries()) : undefined 
+					}
 			);
 
 			const issuer = this.client.issuer;
